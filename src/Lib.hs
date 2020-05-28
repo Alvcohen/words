@@ -12,11 +12,12 @@ module Lib
     , zipOverGridWith
     , gridWithCoords
     , cell2char
+    , findWordInCellPrefix
     , Cell (Cell, Indent)
     ) where
 
 import Data.List (isInfixOf, transpose)
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, listToMaybe)
 import Data
 
 data Cell = Cell (Integer, Integer) Char
@@ -70,10 +71,10 @@ skew (l:ls) = l : skew (map indent ls)
     where indent line = Indent : line
     
 findWord :: Grid Cell -> String -> Maybe [Cell]
-findWord grid word = undefined
---     let lines = getLines grid
---         found = or $ map (findWordInLine word) lines
---     in if found then Just word else Nothing
+findWord grid word =
+    let lines = getLines grid
+        foundWords = map (findWordInLine word) lines
+    in listToMaybe (catMaybes foundWords)
 
 findWords :: Grid Cell -> [String] -> [[Cell]]
 findWords grid words =
@@ -81,4 +82,15 @@ findWords grid words =
     in catMaybes foundWords
 
 findWordInLine :: String -> [Cell] -> Maybe [Cell]
-findWordInLine = undefined  --isInfixOf
+findWordInLine _ [] = Nothing
+findWordInLine word line =
+    let found = findWordInCellPrefix [] word line
+    in case found of
+        Nothing -> findWordInLine word (tail line)
+        cs@(Just _) -> cs
+
+findWordInCellPrefix :: [Cell] -> String -> [Cell] -> Maybe [Cell]
+findWordInCellPrefix acc (s:ss) (c:cs) | s == cell2char c
+ = findWordInCellPrefix (c : acc) ss cs
+findWordInCellPrefix acc [] _ = Just (reverse acc)
+findWordInCellPrefix _ _ _ = Nothing
